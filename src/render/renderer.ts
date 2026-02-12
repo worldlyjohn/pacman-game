@@ -12,9 +12,21 @@ export class Renderer {
   private time = 0;
 
   constructor(canvas: HTMLCanvasElement) {
-    canvas.width = CANVAS_W;
-    canvas.height = CANVAS_H;
+    const scale = 1.5;
+    const dpr = window.devicePixelRatio || 1;
+    const ratio = dpr * scale;
+
+    // Set the backing store size to match native pixels
+    canvas.width = CANVAS_W * ratio;
+    canvas.height = CANVAS_H * ratio;
+
+    // Set CSS display size to the desired scaled size
+    canvas.style.width = `${CANVAS_W * scale}px`;
+    canvas.style.height = `${CANVAS_H * scale}px`;
+
     this.ctx = canvas.getContext('2d')!;
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.scale(ratio, ratio);
   }
 
   getCtx(): CanvasRenderingContext2D {
