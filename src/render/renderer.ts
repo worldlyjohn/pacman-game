@@ -3,6 +3,7 @@ import {
   COLOR, FRUIT_TYPES, SCORE_FLOAT_DURATION,
 } from '../constants';
 import { TileType, GhostMode, Direction, FloatingScore, BonusFruit, HighScoreEntry } from '../types';
+import { GlobalHighScoreEntry } from '../services/global-scores';
 import { TileMap } from '../world/tilemap';
 import { PacMan } from '../entities/pacman';
 import { Ghost } from '../entities/ghost';
@@ -455,7 +456,11 @@ export class Renderer {
     ctx.textAlign = 'left';
   }
 
-  drawMenu(highScores: HighScoreEntry[] = []): void {
+  drawMenu(
+    localScores: HighScoreEntry[] = [],
+    globalScores: GlobalHighScoreEntry[] = [],
+    globalOffline = false,
+  ): void {
     const ctx = this.ctx;
     ctx.fillStyle = COLOR.BG;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -483,28 +488,82 @@ export class Renderer {
       ctx.fillText(line, CANVAS_W / 2, 145 + i * 18);
     });
 
-    // High scores
-    if (highScores.length > 0) {
-      ctx.fillStyle = COLOR.GLOW_CYAN;
-      ctx.shadowColor = COLOR.GLOW_CYAN;
-      ctx.shadowBlur = 10;
-      ctx.font = 'bold 14px "Courier New", monospace';
-      ctx.fillText('HIGH SCORES', CANVAS_W / 2, 220);
-      ctx.shadowBlur = 0;
+    // Two-column high scores
+    const scoreY = 215;
+    const localX = CANVAS_W * 0.27;
+    const globalX = CANVAS_W * 0.73;
+    const entryH = 14;
 
-      ctx.font = '12px "Courier New", monospace';
-      highScores.forEach((entry, i) => {
+    // LOCAL column header
+    ctx.textAlign = 'center';
+    ctx.fillStyle = COLOR.GLOW_CYAN;
+    ctx.shadowColor = COLOR.GLOW_CYAN;
+    ctx.shadowBlur = 10;
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText('LOCAL', localX, scoreY);
+    ctx.shadowBlur = 0;
+
+    // LOCAL entries
+    ctx.font = '10px "Courier New", monospace';
+    if (localScores.length > 0) {
+      localScores.forEach((entry, i) => {
         ctx.fillStyle = i === 0 ? COLOR.PACMAN : COLOR.TEXT;
         const rank = `${i + 1}.`;
         const name = entry.name.padEnd(10, ' ');
-        ctx.fillText(`${rank} ${name} ${entry.score}`, CANVAS_W / 2, 245 + i * 18);
+        ctx.fillText(`${rank} ${name} ${entry.score}`, localX, scoreY + 16 + i * entryH);
       });
+    } else {
+      ctx.fillStyle = COLOR.TEXT;
+      ctx.globalAlpha = 0.4;
+      ctx.fillText('No scores yet', localX, scoreY + 16);
+      ctx.globalAlpha = 1;
     }
+
+    // GLOBAL column header
+    ctx.fillStyle = COLOR.GLOW_MAGENTA;
+    ctx.shadowColor = COLOR.GLOW_MAGENTA;
+    ctx.shadowBlur = 10;
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText('GLOBAL', globalX, scoreY);
+    ctx.shadowBlur = 0;
+
+    // GLOBAL entries
+    ctx.font = '10px "Courier New", monospace';
+    if (globalOffline && globalScores.length === 0) {
+      ctx.fillStyle = COLOR.TEXT;
+      ctx.globalAlpha = 0.3;
+      ctx.fillText('Offline', globalX, scoreY + 16);
+      ctx.globalAlpha = 1;
+    } else if (globalScores.length > 0) {
+      globalScores.forEach((entry, i) => {
+        ctx.fillStyle = i === 0 ? COLOR.PACMAN : COLOR.TEXT;
+        const rank = `${i + 1}.`;
+        const name = entry.name.padEnd(10, ' ');
+        ctx.fillText(`${rank} ${name} ${entry.score}`, globalX, scoreY + 16 + i * entryH);
+      });
+      if (globalOffline) {
+        ctx.fillStyle = COLOR.TEXT;
+        ctx.globalAlpha = 0.3;
+        ctx.font = '9px "Courier New", monospace';
+        ctx.fillText('(cached)', globalX, scoreY + 16 + globalScores.length * entryH);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      ctx.fillStyle = COLOR.TEXT;
+      ctx.globalAlpha = 0.4;
+      ctx.fillText('No scores yet', globalX, scoreY + 16);
+      ctx.globalAlpha = 1;
+    }
+
+    // "Press ENTER" below the taller column
+    const localBottom = scoreY + 16 + localScores.length * entryH;
+    const globalBottom = scoreY + 16 + Math.max(globalScores.length, 1) * entryH;
+    const bottomY = Math.max(localBottom, globalBottom);
 
     ctx.fillStyle = COLOR.GLOW_MAGENTA;
     ctx.font = '14px "Courier New", monospace';
-    const startY = highScores.length > 0 ? 245 + highScores.length * 18 + 20 : 220;
-    ctx.fillText('Press ENTER or SPACE to start', CANVAS_W / 2, startY);
+    ctx.textAlign = 'center';
+    ctx.fillText('Press ENTER or SPACE to start', CANVAS_W / 2, bottomY + 24);
 
     ctx.textAlign = 'left';
   }

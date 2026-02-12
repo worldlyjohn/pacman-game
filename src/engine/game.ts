@@ -16,6 +16,14 @@ import { Renderer } from '../render/renderer';
 import { AudioManager } from '../audio/audio';
 import { HUD } from '../ui/hud';
 import { LevelManager } from '../world/level-manager';
+import {
+  GlobalHighScoreEntry,
+  fetchGlobalScores,
+  getGlobalScores,
+  refreshGlobalScoresIfStale,
+  submitGlobalScore,
+  isGlobalOffline,
+} from '../services/global-scores';
 
 export class Game {
   phase: GamePhase = GamePhase.MENU;
@@ -57,6 +65,7 @@ export class Game {
 
   // High scores
   private highScores: HighScoreEntry[] = [];
+  private globalScores: GlobalHighScoreEntry[] = [];
   private newHighScoreBanner = 0; // timer for "NEW HIGH SCORE!" banner
 
   // Level select
@@ -72,6 +81,7 @@ export class Game {
     this.hud = new HUD();
     this.levelManager = new LevelManager();
     this.highScores = this.loadHighScores();
+    fetchGlobalScores().then(scores => { this.globalScores = scores; });
   }
 
   private loadHighScores(): HighScoreEntry[] {
@@ -176,6 +186,8 @@ export class Game {
   }
 
   private updateMenu(): void {
+    refreshGlobalScoresIfStale();
+    this.globalScores = getGlobalScores();
     if (this.input.consumeEnter()) {
       this.startGame();
     }
@@ -452,6 +464,7 @@ export class Game {
         this.highScores.length = HIGH_SCORE_MAX;
       }
       this.saveHighScores();
+      submitGlobalScore(name, this.score, this.level);
       if (isTop) {
         this.newHighScoreBanner = 3000;
       }
@@ -497,6 +510,7 @@ export class Game {
     }
     if (this.input.consumeEnter() || this.input.consumeRestart()) {
       this.newHighScoreBanner = 0;
+      fetchGlobalScores().then(scores => { this.globalScores = scores; });
       this.phase = GamePhase.MENU;
     }
   }
@@ -505,12 +519,12 @@ export class Game {
     this.renderer.clear();
 
     if (this.phase === GamePhase.MENU) {
-      this.renderer.drawMenu(this.highScores);
+      this.renderer.drawMenu(this.highScores, this.globalScores, isGlobalOffline());
       return;
     }
 
     if (this.phase === GamePhase.LEVEL_SELECT && this.preLevelSelectPhase === GamePhase.MENU) {
-      this.renderer.drawMenu(this.highScores);
+      this.renderer.drawMenu(this.highScores, this.globalScores, isGlobalOffline());
       this.renderer.drawLevelSelect(this.input.levelSelectBuffer, this.levelManager.boardCount);
       return;
     }
