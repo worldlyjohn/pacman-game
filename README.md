@@ -4,7 +4,7 @@ A browser-based Pac-Man clone with a neon/synthwave aesthetic, built with Vite +
 
 ## Features
 
-- 6 unique level layouts with progressive difficulty
+- 5 unique level layouts with progressive difficulty
 - Warp tunnels that teleport entities between paired endpoints
 - Speed pads that boost entity speed by 1.5x
 - Auto-toggling gates that block Pac-Man but not ghosts
